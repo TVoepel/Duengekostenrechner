@@ -220,7 +220,18 @@ const FERTILIZERS = {
   "DAP 18% N + 46% P2O5":                   { n:18, s:0,   p2o5:46, k2o:0, mgo:0 },
   "Innofert Star 24% N + 10% S + 6% MgO":   { n:24, s:10,  p2o5:0,  k2o:0, mgo:6 },
   "NPK 15-15-15":                           { n:15, s:0,   p2o5:15, k2o:15, mgo:0 },
-  "SSA 21% N + 24% S":                      { n:21, s:24,  p2o5:0,  k2o:0, mgo:0 }
+  "SSA 21% N + 24% S":                      { n:21, s:24,  p2o5:0,  k2o:0, mgo:0 },
+  "ENTEC 26 26% N + 13% S (stabilisiert)":  { n:26, s:13,  p2o5:0,  k2o:0, mgo:0 },
+  "Piamon 33 S 33% N + 15% S":              { n:33, s:15,  p2o5:0,  k2o:0, mgo:0 },
+  "YaraBela Sulfan 24% N + 6% S":           { n:24, s:6,   p2o5:0,  k2o:0, mgo:0 },
+  "YaraBela EXTRAN 33,5% N":                { n:33.5, s:0, p2o5:0,  k2o:0, mgo:0 },
+  "Novatec 46 (stabilisierter Harnstoff) 46% N": { n:46, s:0, p2o5:0, k2o:0, mgo:0 },
+  "Kalksalpeter (Ca(NO3)2) 15,5% N":        { n:15.5, s:0, p2o5:0,  k2o:0, mgo:0 },
+  "NPK 12-12-17 + 2 MgO":                   { n:12, s:0,   p2o5:12, k2o:17, mgo:2 },
+  "Kaliumchlorid (60er Kali) 60% K2O":      { n:0,  s:0,   p2o5:0,  k2o:60, mgo:0 },
+  "Kaliumsulfat (Patentkali-Basis) 50% K2O + 18% S": { n:0, s:18, p2o5:0, k2o:50, mgo:0 },
+  "Kieserit 25% MgO + 20% S":               { n:0,  s:20,  p2o5:0,  k2o:0, mgo:25 },
+  "Triplesuperphosphat (TSP) 46% P2O5":     { n:0,  s:0,   p2o5:46, k2o:0, mgo:0 }
 };
 
 const LS_KEY_PRICES = 'nutrisen_price_points_v1';
@@ -515,6 +526,7 @@ function renderEvents(scenario){
         ${info.k2o ? `<span class="tag">K₂O: ${info.k2o}%</span>` : ''}
         ${info.mgo ? `<span class="tag">MgO: ${info.mgo}%</span>` : ''}
       </div>
+      ${info.n === 0 ? `<div class="price-info" style="margin:10px 0 0">⚠ Dieser Dünger enthält keinen Stickstoff. „Ziel kg N/ha“ läuft hier ins Leere (Menge = 0) – trage unter „Erweiterte Eingabe“ stattdessen die Aufwandmenge über einen rechnerischen N-Ersatzwert ein, oder nutze dieses Feld nur zur Preis-/Kostendokumentation.</div>` : ''}
       <details>
         <summary>Erweiterte Eingabe</summary>
         <label>N-Gehalt manuell setzen (%) <span style="font-weight:400;color:#6c757d">– überschreibt den Vorgabewert des Düngers (${info.n}%)</span></label>
