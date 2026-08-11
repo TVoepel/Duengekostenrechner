@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NutriSen Düngerechner – Gaben-Vergleich</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;max-width:1400px;margin:0 auto;padding:20px;background:#f8f9fa;color:#212529}
+    h1{font-size:2rem;margin:0 0 8px}
+    h2{font-size:1.2rem}
+    .subtitle{color:#6c757d;font-size:0.95rem;margin-bottom:24px}
+    .card{background:#fff;border-radius:12px;padding:20px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+    .scenario-header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;margin:-20px -20px 20px;font-size:1.3rem;font-weight:600;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+    .scenario-header.nutrisen{background:linear-gradient(135deg,#e0651a 0%,#f2a93b 100%)}
+    .copy-btn,.add-btn,.remove-btn,.small-btn{background:#fff;color:#e0651a;border:2px solid #fff;padding:8px 16px;border-radius:8px;font-weight:600;cursor:pointer;font-size:0.85rem;transition:all 0.2s}
+    .copy-btn:hover,.add-btn:hover,.remove-btn:hover,.small-btn:hover{background:rgba(255,255,255,0.9);transform:scale(1.05)}
+    .add-btn{background:#e7f5ff;color:#0d6efd;border:1.5px solid #0d6efd;margin-top:8px}
+    .remove-btn{background:#f8d7da;color:#842029;border:1.5px solid #842029;padding:4px 10px;font-size:0.75rem}
+    label{display:block;font-weight:600;margin:12px 0 6px;font-size:0.9rem;color:#495057}
+    select,input{width:100%;padding:10px 12px;border:1.5px solid #ced4da;border-radius:8px;font-size:14px;transition:border 0.2s}
+    select:focus,input:focus{outline:none;border-color:#0d6efd}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .event-section{background:#f8f9fa;border-radius:8px;padding:16px;margin:12px 0;position:relative}
+    .event-title{font-weight:700;font-size:1.1rem;margin-bottom:12px;color:#495057;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+    .date-picker{font-size:0.85rem;font-weight:400}
+    .comparison{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
+    .result-box{border-radius:12px;padding:20px;margin:16px 0}
+    .result-box.conventional{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff}
+    .result-box.nutrisen{background:linear-gradient(135deg,#e0651a 0%,#f2a93b 100%);color:#fff}
+    .result-row{display:flex;justify-content:space-between;align-items:center;margin:8px 0;padding:8px 0}
+    .result-label{font-size:0.9rem;opacity:0.95}
+    .result-value{font-size:1.5rem;font-weight:700}
+    .result-total{border-top:2px solid rgba(255,255,255,0.4);margin-top:12px;padding-top:12px}
+    .savings{background:#d1f2eb;color:#0f5132;padding:20px;border-radius:12px;text-align:center;margin:20px 0}
+    .savings-value{font-size:2.5rem;font-weight:700;margin:8px 0}
+    .savings.negative{background:#f8d7da;color:#842029}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:0.9rem}
+    th,td{padding:10px;text-align:left;border-bottom:1px solid #e9ecef}
+    th{background:#f1f3f5;font-weight:600;color:#495057}
+    .total-row{background:#e7f5ff;font-weight:700}
+    .hint{background:#e7f5ff;border-left:4px solid #0d6efd;padding:12px;margin:16px 0;border-radius:6px;font-size:0.9rem}
+    .price-info{background:#fff3cd;border-left:4px solid #ffc107;padding:12px;margin:16px 0;border-radius:6px;font-size:0.85rem}
+    .warn-badge{display:inline-block;background:#fff3cd;color:#664d03;border-radius:6px;padding:2px 8px;font-size:0.75rem;font-weight:600;margin-left:6px}
+    .ok-badge{display:inline-block;background:#d1f2eb;color:#0f5132;border-radius:6px;padding:2px 8px;font-size:0.75rem;font-weight:600;margin-left:6px}
+    .price-source-table td,.price-source-table th{font-size:0.82rem;padding:6px 8px}
+    .price-source-table input{padding:6px 8px;font-size:0.82rem}
+    .price-source-table td.actions{width:40px}
+    details summary{cursor:pointer;font-weight:600;color:#0d6efd;margin:8px 0}
+    .nutrient-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+    .tag{background:#e9ecef;border-radius:6px;padding:2px 8px;font-size:0.75rem;color:#495057}
+    @media(max-width:900px){.comparison{grid-template-columns:1fr}.grid-2,.grid-3{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <h1>🌱 NutriSen Düngerechner</h1>
+  <p class="subtitle">Vergleich: Betriebsübliche Düngung vs. NutriSen-optimierte Düngung (flexible Anzahl Gaben)</p>
+
+  <div class="card">
+    <div class="grid-2">
+      <div>
+        <label for="area">📏 Gesamtfläche (ha)</label>
+        <input id="area" type="number" step="0.1" value="10" style="max-width:200px">
+      </div>
+      <div>
+        <label for="cropName">🌾 Kultur / Bezeichnung (optional)</label>
+        <input id="cropName" type="text" placeholder="z. B. Winterweizen, Schlag Nord" style="max-width:320px">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">💶 Düngerpreise (eigene Einkaufspreise)</h2>
+    <div class="price-info">
+      ℹ️ <strong>Wichtiger Hinweis zur Preisermittlung:</strong> Es gibt keine öffentliche API, die tagesaktuelle, rechtssichere Düngerpreise live an eine Webseite liefert. Frühere Versionen dieses Rechners haben deshalb <em>erfundene</em> Monatspreise als "echte Marktdaten" ausgegeben – das war irreführend. Dieser Rechner verwaltet stattdessen <strong>deine eigenen, belegbaren Einkaufspreise</strong> (Rechnungen/Lieferscheine) je Düngemittel und Datum – optional ergänzt um monatliche Richtwerte aus dem EU Agri-food Data Portal (siehe unten). Zwischen zwei erfassten Preispunkten wird linear interpoliert; außerhalb des erfassten Zeitraums wird der jeweils nächstliegende bekannte Preis verwendet und deutlich als Schätzung markiert.
+    </div>
+    <details open>
+      <summary>Preispunkte verwalten</summary>
+      <table class="price-source-table">
+        <thead>
+          <tr><th>Dünger</th><th>Datum</th><th>Preis (€/t)</th><th>Quelle/Notiz</th><th></th></tr>
+        </thead>
+        <tbody id="price-points-body"></tbody>
+      </table>
+      <button class="small-btn" id="add-price-point" style="background:#e7f5ff;color:#0d6efd;border:1.5px solid #0d6efd;margin-top:10px">➕ Preispunkt hinzufügen</button>
+      <button class="small-btn" id="export-prices" style="background:#f1f3f5;color:#495057;border:1.5px solid #ced4da;margin-top:10px">⬇️ Als JSON exportieren</button>
+      <label style="margin-top:10px">JSON importieren</label>
+      <input type="file" id="import-prices" accept="application/json">
+    </details>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">🇪🇺 Monatliche EU-Düngemittelpreise (Deutschland)</h2>
+    <div class="price-info">
+      💡 Diese Webseite ruft die EU-Preise <strong>nicht live</strong> pro Seitenaufruf ab (Timeout-/Sperr-Risiko bei den EU-Servern). Stattdessen liest sie eine lokal zwischengespeicherte Datei
+      (<code>eu_fertilizer_prices.json</code>), die regelmäßig (z. B. täglich/wöchentlich per Cronjob) mit dem mitgelieferten Skript
+      <code>scripts/fetch_eu_fertilizer_prices.py</code> aus dem EU Agri-food Data Portal aktualisiert wird.
+    </div>
+    <button class="small-btn" id="load-eu-prices" style="background:#e7f5ff;color:#0d6efd;border:1.5px solid #0d6efd">🔄 Zwischengespeicherte EU-Preise laden</button>
+    <span id="eu-load-status" style="margin-left:10px;font-size:0.85rem;color:#6c757d"></span>
+    <div id="eu-price-preview"></div>
+
+    <div class="price-info" style="background:#f8d7da;border-left-color:#842029;margin-top:16px">
+      ⚖️ <strong>Rechtlicher Hinweis / Disclaimer:</strong> Die hier angezeigten EU-Preisdaten sind aggregierte, von den
+      Mitgliedstaaten an die Europäische Kommission gemeldete Marktmeldungen (Quelle:
+      <a href="https://agridata.ec.europa.eu/extensions/dataportal/agricultural_markets.html" target="_blank" rel="noopener">Europäische Kommission – Agri-Food Data Portal</a>).
+      Für die tagesaktuelle Richtigkeit dieser Daten sowie für hieraus resultierende Handelsentscheidungen oder
+      Handelsverluste wird <strong>keine Haftung übernommen</strong>. Die Europäische Kommission schließt ihrerseits
+      jegliche Haftung für die Verwendung ihrer API- bzw. Portaldaten aus. Diese Werte ersetzen keine eigene,
+      belegbare Preisrecherche und dienen nur als grobe Orientierung.
+    </div>
+  </div>
+
+  <div class="hint">
+    🎯 <strong>Workflow:</strong> Erfasse zuerst deine betriebsübliche Düngung (inkl. Datum pro Gabe). Klicke dann bei NutriSen auf „Werte übernehmen“, um die Ausgangswerte zu kopieren und anzupassen. Preise werden automatisch aus deinen erfassten Einkaufspreisen anhand des Gabedatums ermittelt – du kannst sie bei Bedarf pro Gabe manuell überschreiben.
+  </div>
+
+  <div class="comparison">
+    <!-- CONVENTIONAL SCENARIO -->
+    <div class="card">
+      <div class="scenario-header">
+        <span>🚜 Betriebsübliche Düngung</span>
+      </div>
+      <div id="events-conv"></div>
+      <button class="add-btn" data-scenario="conv">➕ Gabe hinzufügen</button>
+
+      <div class="result-box conventional">
+        <div class="result-row">
+          <span class="result-label">Gesamt-N (kg/ha)</span>
+          <span class="result-value" id="conv-total-n">0</span>
+        </div>
+        <div class="result-row result-total">
+          <span class="result-label">Kosten pro Hektar</span>
+          <span class="result-value" id="conv-cost-ha">0,00 €</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Gesamtkosten (<span id="conv-area">10</span> ha)</span>
+          <span class="result-value" id="conv-total">0,00 €</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- NUTRISEN SCENARIO -->
+    <div class="card">
+      <div class="scenario-header nutrisen">
+        <span>🎯 NutriSen Düngung</span>
+        <button class="copy-btn" id="copy-from-conv">📋 Werte übernehmen</button>
+      </div>
+      <div id="events-nutrisen"></div>
+      <button class="add-btn" data-scenario="nutrisen">➕ Gabe hinzufügen</button>
+
+      <div class="result-box nutrisen">
+        <div class="result-row">
+          <span class="result-label">Gesamt-N (kg/ha)</span>
+          <span class="result-value" id="nutrisen-total-n">0</span>
+        </div>
+        <div class="result-row result-total">
+          <span class="result-label">Kosten pro Hektar</span>
+          <span class="result-value" id="nutrisen-cost-ha">0,00 €</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">Gesamtkosten (<span id="nutrisen-area">10</span> ha)</span>
+          <span class="result-value" id="nutrisen-total">0,00 €</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="savings" id="savings">
+    <div style="font-size:1.2rem;font-weight:600;margin-bottom:8px">💰 EINSPARUNG MIT NUTRISEN</div>
+    <div class="savings-value" id="savings-value">0,00 €</div>
+    <div id="savings-percent" style="font-size:1.1rem"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">📊 Detaillierter Vergleich</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Gabe</th>
+          <th>Datum</th>
+          <th>Betriebsüblich</th>
+          <th>Kosten/ha</th>
+          <th>NutriSen</th>
+          <th>Kosten/ha</th>
+          <th>Differenz</th>
+        </tr>
+      </thead>
+      <tbody id="detail-table"></tbody>
+    </table>
+  </div>
+
+  <footer style="font-size:0.78rem;color:#6c757d;padding:16px 4px;line-height:1.5">
+    Enthält ggf. Marktdaten der Quelle: Europäische Kommission – Agri-Food Data Portal
+    (<a href="https://agridata.ec.europa.eu/extensions/dataportal/agricultural_markets.html" target="_blank" rel="noopener">agridata.ec.europa.eu</a>).
+    Es handelt sich um aggregierte, von den Mitgliedstaaten gemeldete EU-Marktdaten. Für die tagesaktuelle
+    Richtigkeit dieser Daten oder daraus resultierende Handelsentscheidungen/-verluste wird keine Haftung
+    übernommen. Die Europäische Kommission schließt ihrerseits jegliche Haftung für die Nutzung ihrer
+    API- bzw. Portaldaten aus. Alle übrigen Preisangaben in diesem Rechner beruhen auf selbst erfassten,
+    eigenen Einkaufspreisen des Nutzers.
+  </footer>
+
+<script>
+/* ============================================================
+   Stammdaten: Düngemittel und Nährstoffgehalte (%)
+   ============================================================ */
+const FERTILIZERS = {
+  "KAS 27% N":                              { n:27, s:0,   p2o5:0,  k2o:0, mgo:0 },
+  "ASS 26% N + 13% S":                      { n:26, s:13,  p2o5:0,  k2o:0, mgo:0 },
+  "Harnstoff 46% N":                        { n:46, s:0,   p2o5:0,  k2o:0, mgo:0 },
+  "AHL 28% N":                               { n:28, s:0,   p2o5:0,  k2o:0, mgo:0 },
+  "Alzon Neo 46% N":                        { n:46, s:0,   p2o5:0,  k2o:0, mgo:0 },
+  "DAP 18% N + 46% P2O5":                   { n:18, s:0,   p2o5:46, k2o:0, mgo:0 },
+  "Innofert Star 24% N + 10% S + 6% MgO":   { n:24, s:10,  p2o5:0,  k2o:0, mgo:6 },
+  "NPK 15-15-15":                           { n:15, s:0,   p2o5:15, k2o:15, mgo:0 },
+  "SSA 21% N + 24% S":                      { n:21, s:24,  p2o5:0,  k2o:0, mgo:0 }
+};
+
+const LS_KEY_PRICES = 'nutrisen_price_points_v1';
+const LS_KEY_STATE = 'nutrisen_state_v1';
+
+function fmt(x){ return new Intl.NumberFormat('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}).format(x||0); }
+function fmtInt(x){ return new Intl.NumberFormat('de-DE',{maximumFractionDigits:1}).format(x||0); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+/* ============================================================
+   Preispunkt-Verwaltung (eigene Einkaufspreise statt Fantasiedaten)
+   ============================================================ */
+let pricePoints = loadPricePoints();
+
+function loadPricePoints(){
+  try {
+    const raw = localStorage.getItem(LS_KEY_PRICES);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  // Sinnvolle Beispiel-Startwerte, klar als Beispiel markiert
+  return [
+    { id: uid(), fert: "KAS 27% N", date: "2025-03-01", price: 477, note: "Beispielwert – bitte durch echten Einkaufspreis ersetzen" },
+    { id: uid(), fert: "Harnstoff 46% N", date: "2025-03-01", price: 807.5, note: "Beispielwert – bitte durch echten Einkaufspreis ersetzen" },
+    { id: uid(), fert: "AHL 28% N", date: "2025-03-01", price: 444, note: "Beispielwert – bitte durch echten Einkaufspreis ersetzen" }
+  ];
+}
+
+function savePricePoints(){
+  localStorage.setItem(LS_KEY_PRICES, JSON.stringify(pricePoints));
+}
+
+function renderPricePoints(){
+  const body = document.getElementById('price-points-body');
+  body.innerHTML = '';
+  pricePoints
+    .slice()
+    .sort((a,b) => a.fert.localeCompare(b.fert) || a.date.localeCompare(b.date))
+    .forEach(pp => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <select data-id="${pp.id}" data-field="fert">
+            ${Object.keys(FERTILIZERS).map(f => `<option value="${f}" ${f===pp.fert?'selected':''}>${f}</option>`).join('')}
+          </select>
+        </td>
+        <td><input type="date" data-id="${pp.id}" data-field="date" value="${pp.date}"></td>
+        <td><input type="number" step="0.01" data-id="${pp.id}" data-field="price" value="${pp.price}"></td>
+        <td><input type="text" data-id="${pp.id}" data-field="note" value="${pp.note||''}" placeholder="z. B. Rechnung Nr. 123"></td>
+        <td class="actions"><button class="remove-btn" data-remove-id="${pp.id}">✕</button></td>
+      `;
+      body.appendChild(tr);
+    });
+
+  body.querySelectorAll('select,input').forEach(el => {
+    el.addEventListener('input', () => {
+      const id = el.dataset.id;
+      const field = el.dataset.field;
+      const pt = pricePoints.find(p => p.id === id);
+      if (!pt) return;
+      pt[field] = field === 'price' ? parseFloat(el.value || 0) : el.value;
+      savePricePoints();
+      refreshAllPriceLookups();
+    });
+  });
+  body.querySelectorAll('[data-remove-id]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pricePoints = pricePoints.filter(p => p.id !== btn.dataset.removeId);
+      savePricePoints();
+      renderPricePoints();
+      refreshAllPriceLookups();
+    });
+  });
+}
+
+document.getElementById('add-price-point').addEventListener('click', () => {
+  pricePoints.push({ id: uid(), fert: Object.keys(FERTILIZERS)[0], date: todayStr(), price: 0, note: '' });
+  savePricePoints();
+  renderPricePoints();
+});
+
+document.getElementById('export-prices').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(pricePoints, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'nutrisen_preispunkte.json';
+  a.click();
+});
+
+document.getElementById('import-prices').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (Array.isArray(data)) {
+        pricePoints = data.map(d => ({ id: d.id || uid(), fert: d.fert, date: d.date, price: parseFloat(d.price)||0, note: d.note||'' }));
+        savePricePoints();
+        renderPricePoints();
+        refreshAllPriceLookups();
+      }
+    } catch(err) { alert('Ungültige JSON-Datei.'); }
+  };
+  reader.readAsText(file);
+});
+
+/* ============================================================
+   EU-Marktpreise: Import aus lokal zwischengespeicherter JSON-Datei
+   (erzeugt durch scripts/fetch_eu_fertilizer_prices.py). Es findet
+   KEIN Live-Abruf der EU-API aus dem Browser heraus statt.
+   ============================================================ */
+document.getElementById('load-eu-prices').addEventListener('click', async () => {
+  const statusEl = document.getElementById('eu-load-status');
+  const previewEl = document.getElementById('eu-price-preview');
+  statusEl.textContent = 'Lade eu_fertilizer_prices.json …';
+  previewEl.innerHTML = '';
+  try {
+    const res = await fetch('eu_fertilizer_prices.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Datei nicht gefunden (Status ' + res.status + ')');
+    const data = await res.json();
+    const points = Array.isArray(data.pricePoints) ? data.pricePoints : [];
+    if (points.length === 0) {
+      statusEl.textContent = 'Keine EU-Preispunkte in der Datei gefunden.';
+      return;
+    }
+    const fetchedAt = data.fetchedAt ? new Date(data.fetchedAt).toLocaleString('de-DE') : 'unbekannt';
+    statusEl.textContent = `${points.length} EU-Preispunkte gefunden (Stand Abruf: ${fetchedAt}).`;
+
+    previewEl.innerHTML = `
+      <table class="price-source-table" style="margin-top:10px">
+        <thead><tr><th></th><th>Dünger</th><th>Datum</th><th>Preis (€/t)</th><th>Notiz</th></tr></thead>
+        <tbody>
+          ${points.map((p, i) => `
+            <tr>
+              <td><input type="checkbox" class="eu-point-check" data-idx="${i}" checked></td>
+              <td>${p.fert}</td>
+              <td>${p.date}</td>
+              <td>${fmt(p.price)}</td>
+              <td>${p.note || ''}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      <button class="small-btn" id="apply-eu-prices" style="background:#d1f2eb;color:#0f5132;border:1.5px solid #0f5132;margin-top:10px">✅ Ausgewählte Preispunkte übernehmen</button>
+      <p style="font-size:0.8rem;color:#6c757d;margin-top:8px">Quelle: ${data.source || 'Europäische Kommission – Agri-Food Data Portal'}. ${data.disclaimer || ''}</p>
+    `;
+
+    document.getElementById('apply-eu-prices').addEventListener('click', () => {
+      const checked = Array.from(document.querySelectorAll('.eu-point-check:checked')).map(c => parseInt(c.dataset.idx, 10));
+      checked.forEach(idx => {
+        const p = points[idx];
+        if (!FERTILIZERS[p.fert]) return;
+        pricePoints.push({ id: uid(), fert: p.fert, date: p.date, price: p.price, note: p.note || 'EU Agri-food Data Portal' });
+      });
+      savePricePoints();
+      renderPricePoints();
+      refreshAllPriceLookups();
+      statusEl.textContent = `${checked.length} EU-Preispunkte übernommen.`;
+      previewEl.innerHTML = '';
+    });
+  } catch (err) {
+    statusEl.textContent = 'Keine zwischengespeicherten EU-Preise verfügbar. Führe zuerst scripts/fetch_eu_fertilizer_prices.py aus.';
+  }
+});
+
+/**
+ * Ermittelt den Preis für einen Dünger an einem Datum per linearer
+ * Interpolation zwischen den zwei umgebenden erfassten Preispunkten.
+ * Liegt das Datum außerhalb des erfassten Bereichs, wird der jeweils
+ * nächstliegende Preis verwendet (extrapolation=false → Schätzung).
+ */
+function getInterpolatedPrice(fert, dateStr) {
+  const pts = pricePoints
+    .filter(p => p.fert === fert && p.date)
+    .map(p => ({ t: new Date(p.date).getTime(), price: p.price }))
+    .sort((a,b) => a.t - b.t);
+
+  if (pts.length === 0) return { price: 0, estimated: true, reason: 'Kein Preispunkt erfasst' };
+
+  const t = new Date(dateStr).getTime();
+
+  if (t <= pts[0].t) return { price: pts[0].price, estimated: t < pts[0].t, reason: t < pts[0].t ? 'Vor erstem erfassten Preis – nächstliegender Wert' : null };
+  if (t >= pts[pts.length-1].t) return { price: pts[pts.length-1].price, estimated: t > pts[pts.length-1].t, reason: t > pts[pts.length-1].t ? 'Nach letztem erfassten Preis – nächstliegender Wert' : null };
+
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i+1];
+    if (t >= a.t && t <= b.t) {
+      if (a.t === b.t) return { price: a.price, estimated: false, reason: null };
+      const ratio = (t - a.t) / (b.t - a.t);
+      const price = a.price + ratio * (b.price - a.price);
+      return { price: Math.round(price * 100) / 100, estimated: false, reason: 'Interpoliert zwischen zwei erfassten Preisen' };
+    }
+  }
+  return { price: pts[0].price, estimated: true, reason: null };
+}
+
+/* ============================================================
+   Gaben (Events) UI
+   ============================================================ */
+let state = loadState();
+
+function loadState(){
+  try {
+    const raw = localStorage.getItem(LS_KEY_STATE);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return {
+    area: 10,
+    cropName: '',
+    conv: [
+      { id: uid(), date: '2026-03-15', fert: 'KAS 27% N', targetN: 80, priceOverride: null, nContentOverride: null },
+      { id: uid(), date: '2026-04-15', fert: 'Harnstoff 46% N', targetN: 60, priceOverride: null, nContentOverride: null },
+      { id: uid(), date: '2026-05-15', fert: 'Harnstoff 46% N', targetN: 40, priceOverride: null, nContentOverride: null }
+    ],
+    nutrisen: [
+      { id: uid(), date: '2026-03-15', fert: 'AHL 28% N', targetN: 70, priceOverride: null, nContentOverride: null },
+      { id: uid(), date: '2026-04-15', fert: 'AHL 28% N', targetN: 50, priceOverride: null, nContentOverride: null },
+      { id: uid(), date: '2026-05-15', fert: 'AHL 28% N', targetN: 30, priceOverride: null, nContentOverride: null }
+    ]
+  };
+}
+
+function saveState(){
+  localStorage.setItem(LS_KEY_STATE, JSON.stringify(state));
+}
+
+function fertOptionsHtml(selected){
+  return Object.keys(FERTILIZERS).map(f => `<option value="${f}" ${f===selected?'selected':''}>${f}</option>`).join('');
+}
+
+function renderEvents(scenario){
+  const container = document.getElementById(scenario === 'conv' ? 'events-conv' : 'events-nutrisen');
+  container.innerHTML = '';
+  const list = state[scenario];
+  list.forEach((ev, idx) => {
+    const info = FERTILIZERS[ev.fert] || { n:0,s:0,p2o5:0,k2o:0,mgo:0 };
+    const lookup = ev.priceOverride != null ? { price: ev.priceOverride, estimated:false, reason:'Manuell überschrieben' } : getInterpolatedPrice(ev.fert, ev.date);
+    const nContent = ev.nContentOverride != null ? ev.nContentOverride : info.n;
+    const amount = nContent > 0 ? (ev.targetN / nContent) * 100 : 0;
+    const cost = (amount / 1000) * lookup.price;
+
+    const section = document.createElement('div');
+    section.className = 'event-section';
+    section.innerHTML = `
+      <div class="event-title">
+        <span>${idx+1}. Gabe</span>
+        <span class="date-picker">
+          <input type="date" class="ev-date" value="${ev.date}" style="width:140px;padding:6px 8px;font-size:0.85rem">
+        </span>
+        ${list.length > 1 ? `<button class="remove-btn ev-remove">✕ entfernen</button>` : ''}
+      </div>
+      <div class="grid">
+        <div>
+          <label>Dünger</label>
+          <select class="ev-fert">${fertOptionsHtml(ev.fert)}</select>
+        </div>
+        <div>
+          <label>Preis/t (€) ${lookup.estimated ? '<span class="warn-badge" title="'+(lookup.reason||'Geschätzt')+'">⚠ geschätzt</span>' : '<span class="ok-badge" title="'+(lookup.reason||'aus Preispunkten')+'">✓ ermittelt</span>'}</label>
+          <input class="ev-price" type="number" step="0.01" value="${fmtRaw(lookup.price)}">
+        </div>
+        <div>
+          <label>N-Gehalt (%) ${ev.nContentOverride != null ? '<span class="warn-badge" title="Manuell überschrieben">✎ angepasst</span>' : ''}</label>
+          <input class="ev-ncontent" type="number" step="0.1" value="${nContent}" readonly style="background:#f1f3f5">
+        </div>
+        <div>
+          <label>Ziel kg N/ha</label>
+          <input class="ev-target" type="number" step="1" value="${ev.targetN}">
+        </div>
+      </div>
+      <div class="nutrient-tags">
+        ${info.s ? `<span class="tag">S: ${info.s}%</span>` : ''}
+        ${info.p2o5 ? `<span class="tag">P₂O₅: ${info.p2o5}%</span>` : ''}
+        ${info.k2o ? `<span class="tag">K₂O: ${info.k2o}%</span>` : ''}
+        ${info.mgo ? `<span class="tag">MgO: ${info.mgo}%</span>` : ''}
+      </div>
+      <details>
+        <summary>Erweiterte Eingabe</summary>
+        <label>N-Gehalt manuell setzen (%) <span style="font-weight:400;color:#6c757d">– überschreibt den Vorgabewert des Düngers (${info.n}%)</span></label>
+        <input class="ev-ncontent-override" type="number" step="0.1" value="${ev.nContentOverride != null ? ev.nContentOverride : ''}" placeholder="${info.n} (Vorgabe)">
+        ${ev.nContentOverride != null ? `<button class="small-btn ev-ncontent-reset" style="background:#f1f3f5;color:#495057;border:1.5px solid #ced4da;margin-top:8px">↺ Vorgabewert verwenden</button>` : ''}
+      </details>
+      <div style="margin-top:12px;font-weight:600;color:#495057">
+        Menge: <span class="ev-amount">${fmtInt(amount)}</span> kg/ha |
+        Kosten: <span class="ev-cost">${fmt(cost)}</span> €/ha
+      </div>
+    `;
+
+    section.querySelector('.ev-date').addEventListener('change', e => { ev.date = e.target.value; ev.priceOverride = null; saveState(); renderEvents(scenario); calculate(); });
+    section.querySelector('.ev-fert').addEventListener('change', e => { ev.fert = e.target.value; ev.priceOverride = null; ev.nContentOverride = null; saveState(); renderEvents(scenario); calculate(); });
+    section.querySelector('.ev-price').addEventListener('input', e => { ev.priceOverride = parseFloat(e.target.value || 0); saveState(); renderEvents(scenario); calculate(); });
+    section.querySelector('.ev-target').addEventListener('input', e => { ev.targetN = parseFloat(e.target.value || 0); saveState(); calculate(); });
+    section.querySelector('.ev-ncontent-override').addEventListener('input', e => {
+      const v = e.target.value;
+      ev.nContentOverride = v === '' ? null : parseFloat(v);
+      saveState(); renderEvents(scenario); calculate();
+    });
+    const resetBtn = section.querySelector('.ev-ncontent-reset');
+    if (resetBtn) resetBtn.addEventListener('click', () => { ev.nContentOverride = null; saveState(); renderEvents(scenario); calculate(); });
+    const removeBtn = section.querySelector('.ev-remove');
+    if (removeBtn) removeBtn.addEventListener('click', () => {
+      state[scenario] = state[scenario].filter(x => x.id !== ev.id);
+      saveState();
+      renderEvents(scenario);
+      calculate();
+    });
+
+    container.appendChild(section);
+  });
+}
+
+function fmtRaw(x){ return Math.round((x||0)*100)/100; }
+
+document.querySelectorAll('.add-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const scenario = btn.dataset.scenario;
+    const lastDate = state[scenario].length ? state[scenario][state[scenario].length-1].date : todayStr();
+    state[scenario].push({ id: uid(), date: lastDate, fert: Object.keys(FERTILIZERS)[0], targetN: 0, priceOverride: null, nContentOverride: null });
+    saveState();
+    renderEvents(scenario);
+    calculate();
+  });
+});
+
+document.getElementById('copy-from-conv').addEventListener('click', (e) => {
+  state.nutrisen = state.conv.map(ev => ({ ...ev, id: uid(), priceOverride: null }));
+  saveState();
+  renderEvents('nutrisen');
+  calculate();
+
+  const btn = e.target;
+  const originalText = btn.textContent;
+  btn.textContent = '✅ Werte übernommen!';
+  btn.style.background = 'rgba(255,255,255,1)';
+  setTimeout(() => { btn.textContent = originalText; btn.style.background = '#fff'; }, 2000);
+});
+
+function refreshAllPriceLookups(){
+  renderEvents('conv');
+  renderEvents('nutrisen');
+  calculate();
+}
+
+const area = document.getElementById('area');
+const cropName = document.getElementById('cropName');
+area.value = state.area;
+cropName.value = state.cropName || '';
+area.addEventListener('input', () => { state.area = parseFloat(area.value||0); saveState(); calculate(); });
+cropName.addEventListener('input', () => { state.cropName = cropName.value; saveState(); });
+
+function calculate() {
+  const ha = parseFloat(area.value || 0);
+  document.getElementById('conv-area').textContent = fmtInt(ha);
+  document.getElementById('nutrisen-area').textContent = fmtInt(ha);
+
+  const n = Math.max(state.conv.length, state.nutrisen.length);
+  let convTotal = 0, nutrisenTotal = 0, convN = 0, nutrisenN = 0, tableRows = '';
+
+  for (let i = 0; i < n; i++) {
+    const c = state.conv[i];
+    const l = state.nutrisen[i];
+
+    let convCost = 0, convTarget = 0, convFertName = '–', convDateStr = '';
+    if (c) {
+      const info = FERTILIZERS[c.fert] || { n:0 };
+      const lookup = c.priceOverride != null ? { price: c.priceOverride } : getInterpolatedPrice(c.fert, c.date);
+      const nContent = c.nContentOverride != null ? c.nContentOverride : info.n;
+      const amount = nContent > 0 ? (c.targetN / nContent) * 100 : 0;
+      convCost = (amount / 1000) * lookup.price;
+      convTarget = c.targetN;
+      convFertName = c.fert;
+      convDateStr = new Date(c.date).toLocaleDateString('de-DE', {day:'2-digit', month:'short'});
+      convTotal += convCost;
+      convN += convTarget;
+    }
+
+    let liveCost = 0, liveTarget = 0, liveFertName = '–';
+    if (l) {
+      const info = FERTILIZERS[l.fert] || { n:0 };
+      const lookup = l.priceOverride != null ? { price: l.priceOverride } : getInterpolatedPrice(l.fert, l.date);
+      const nContent = l.nContentOverride != null ? l.nContentOverride : info.n;
+      const amount = nContent > 0 ? (l.targetN / nContent) * 100 : 0;
+      liveCost = (amount / 1000) * lookup.price;
+      liveTarget = l.targetN;
+      liveFertName = l.fert;
+      nutrisenTotal += liveCost;
+      nutrisenN += liveTarget;
+    }
+
+    const diff = convCost - liveCost;
+    const diffClass = diff > 0 ? 'style="color:#0f5132;font-weight:700"' : diff < 0 ? 'style="color:#842029;font-weight:700"' : '';
+
+    tableRows += `<tr>
+      <td><strong>${i+1}. Gabe</strong></td>
+      <td>${convDateStr}</td>
+      <td>${convFertName} (${fmtInt(convTarget)} kg N/ha)</td>
+      <td>${fmt(convCost)} €</td>
+      <td>${liveFertName} (${fmtInt(liveTarget)} kg N/ha)</td>
+      <td>${fmt(liveCost)} €</td>
+      <td ${diffClass}>${diff >= 0 ? '+' : ''}${fmt(diff)} €</td>
+    </tr>`;
+  }
+
+  document.getElementById('conv-total-n').textContent = fmtInt(convN);
+  document.getElementById('conv-cost-ha').textContent = fmt(convTotal) + ' €';
+  document.getElementById('conv-total').textContent = fmt(convTotal * ha) + ' €';
+
+  document.getElementById('nutrisen-total-n').textContent = fmtInt(nutrisenN);
+  document.getElementById('nutrisen-cost-ha').textContent = fmt(nutrisenTotal) + ' €';
+  document.getElementById('nutrisen-total').textContent = fmt(nutrisenTotal * ha) + ' €';
+
+  const savings = (convTotal - nutrisenTotal) * ha;
+  const savingsPercent = convTotal > 0 ? ((convTotal - nutrisenTotal) / convTotal * 100) : 0;
+
+  const savingsBox = document.getElementById('savings');
+  const savingsValue = document.getElementById('savings-value');
+  const savingsPercentEl = document.getElementById('savings-percent');
+
+  if (savings > 0) {
+    savingsBox.className = 'savings';
+    savingsValue.textContent = fmt(savings) + ' €';
+    savingsPercentEl.textContent = `(${fmt(savingsPercent)}% günstiger auf ${fmtInt(ha)} ha)`;
+  } else {
+    savingsBox.className = 'savings negative';
+    savingsValue.textContent = fmt(Math.abs(savings)) + ' €';
+    savingsPercentEl.textContent = `(${fmt(Math.abs(savingsPercent))}% teurer auf ${fmtInt(ha)} ha)`;
+  }
+
+  const totalDiff = convTotal - nutrisenTotal;
+  const totalDiffClass = totalDiff > 0 ? 'style="color:#0f5132;font-weight:700"' : totalDiff < 0 ? 'style="color:#842029;font-weight:700"' : '';
+
+  tableRows += `<tr class="total-row">
+    <td><strong>GESAMT</strong></td>
+    <td></td>
+    <td><strong>${fmtInt(convN)} kg N/ha</strong></td>
+    <td><strong>${fmt(convTotal)} €</strong></td>
+    <td><strong>${fmtInt(nutrisenN)} kg N/ha</strong></td>
+    <td><strong>${fmt(nutrisenTotal)} €</strong></td>
+    <td ${totalDiffClass}><strong>${totalDiff >= 0 ? '+' : ''}${fmt(totalDiff)} €</strong></td>
+  </tr>`;
+
+  document.getElementById('detail-table').innerHTML = tableRows;
+}
+
+renderPricePoints();
+renderEvents('conv');
+renderEvents('nutrisen');
+calculate();
+</script>
+</body>
+</html>
