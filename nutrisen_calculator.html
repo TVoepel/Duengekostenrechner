@@ -336,14 +336,14 @@ function loadState(){
     area: 10,
     cropName: '',
     conv: [
-      { id: uid(), date: '2026-03-15', fert: 'KAS 27% N', targetN: 80, priceOverride: null },
-      { id: uid(), date: '2026-04-15', fert: 'Harnstoff 46% N', targetN: 60, priceOverride: null },
-      { id: uid(), date: '2026-05-15', fert: 'Harnstoff 46% N', targetN: 40, priceOverride: null }
+      { id: uid(), date: '2026-03-15', fert: 'KAS 27% N', targetN: 80, priceOverride: null, nContentOverride: null },
+      { id: uid(), date: '2026-04-15', fert: 'Harnstoff 46% N', targetN: 60, priceOverride: null, nContentOverride: null },
+      { id: uid(), date: '2026-05-15', fert: 'Harnstoff 46% N', targetN: 40, priceOverride: null, nContentOverride: null }
     ],
     nutrisen: [
-      { id: uid(), date: '2026-03-15', fert: 'AHL 28% N', targetN: 70, priceOverride: null },
-      { id: uid(), date: '2026-04-15', fert: 'AHL 28% N', targetN: 50, priceOverride: null },
-      { id: uid(), date: '2026-05-15', fert: 'AHL 28% N', targetN: 30, priceOverride: null }
+      { id: uid(), date: '2026-03-15', fert: 'AHL 28% N', targetN: 70, priceOverride: null, nContentOverride: null },
+      { id: uid(), date: '2026-04-15', fert: 'AHL 28% N', targetN: 50, priceOverride: null, nContentOverride: null },
+      { id: uid(), date: '2026-05-15', fert: 'AHL 28% N', targetN: 30, priceOverride: null, nContentOverride: null }
     ]
   };
 }
@@ -363,7 +363,8 @@ function renderEvents(scenario){
   list.forEach((ev, idx) => {
     const info = FERTILIZERS[ev.fert] || { n:0,s:0,p2o5:0,k2o:0,mgo:0 };
     const lookup = ev.priceOverride != null ? { price: ev.priceOverride, estimated:false, reason:'Manuell überschrieben' } : getInterpolatedPrice(ev.fert, ev.date);
-    const amount = info.n > 0 ? (ev.targetN / info.n) * 100 : 0;
+    const nContent = ev.nContentOverride != null ? ev.nContentOverride : info.n;
+    const amount = nContent > 0 ? (ev.targetN / nContent) * 100 : 0;
     const cost = (amount / 1000) * lookup.price;
 
     const section = document.createElement('div');
@@ -386,8 +387,8 @@ function renderEvents(scenario){
           <input class="ev-price" type="number" step="0.01" value="${fmtRaw(lookup.price)}">
         </div>
         <div>
-          <label>N-Gehalt (%)</label>
-          <input class="ev-ncontent" type="number" step="0.1" value="${info.n}" readonly style="background:#f1f3f5">
+          <label>N-Gehalt (%) ${ev.nContentOverride != null ? '<span class="warn-badge" title="Manuell überschrieben">✎ angepasst</span>' : ''}</label>
+          <input class="ev-ncontent" type="number" step="0.1" value="${nContent}" readonly style="background:#f1f3f5">
         </div>
         <div>
           <label>Ziel kg N/ha</label>
@@ -400,6 +401,12 @@ function renderEvents(scenario){
         ${info.k2o ? `<span class="tag">K₂O: ${info.k2o}%</span>` : ''}
         ${info.mgo ? `<span class="tag">MgO: ${info.mgo}%</span>` : ''}
       </div>
+      <details>
+        <summary>Erweiterte Eingabe</summary>
+        <label>N-Gehalt manuell setzen (%) <span style="font-weight:400;color:#6c757d">– überschreibt den Vorgabewert des Düngers (${info.n}%)</span></label>
+        <input class="ev-ncontent-override" type="number" step="0.1" value="${ev.nContentOverride != null ? ev.nContentOverride : ''}" placeholder="${info.n} (Vorgabe)">
+        ${ev.nContentOverride != null ? `<button class="small-btn ev-ncontent-reset" style="background:#f1f3f5;color:#495057;border:1.5px solid #ced4da;margin-top:8px">↺ Vorgabewert verwenden</button>` : ''}
+      </details>
       <div style="margin-top:12px;font-weight:600;color:#495057">
         Menge: <span class="ev-amount">${fmtInt(amount)}</span> kg/ha |
         Kosten: <span class="ev-cost">${fmt(cost)}</span> €/ha
@@ -407,9 +414,16 @@ function renderEvents(scenario){
     `;
 
     section.querySelector('.ev-date').addEventListener('change', e => { ev.date = e.target.value; ev.priceOverride = null; saveState(); renderEvents(scenario); calculate(); });
-    section.querySelector('.ev-fert').addEventListener('change', e => { ev.fert = e.target.value; ev.priceOverride = null; saveState(); renderEvents(scenario); calculate(); });
+    section.querySelector('.ev-fert').addEventListener('change', e => { ev.fert = e.target.value; ev.priceOverride = null; ev.nContentOverride = null; saveState(); renderEvents(scenario); calculate(); });
     section.querySelector('.ev-price').addEventListener('input', e => { ev.priceOverride = parseFloat(e.target.value || 0); saveState(); renderEvents(scenario); calculate(); });
     section.querySelector('.ev-target').addEventListener('input', e => { ev.targetN = parseFloat(e.target.value || 0); saveState(); calculate(); });
+    section.querySelector('.ev-ncontent-override').addEventListener('input', e => {
+      const v = e.target.value;
+      ev.nContentOverride = v === '' ? null : parseFloat(v);
+      saveState(); renderEvents(scenario); calculate();
+    });
+    const resetBtn = section.querySelector('.ev-ncontent-reset');
+    if (resetBtn) resetBtn.addEventListener('click', () => { ev.nContentOverride = null; saveState(); renderEvents(scenario); calculate(); });
     const removeBtn = section.querySelector('.ev-remove');
     if (removeBtn) removeBtn.addEventListener('click', () => {
       state[scenario] = state[scenario].filter(x => x.id !== ev.id);
@@ -428,7 +442,7 @@ document.querySelectorAll('.add-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const scenario = btn.dataset.scenario;
     const lastDate = state[scenario].length ? state[scenario][state[scenario].length-1].date : todayStr();
-    state[scenario].push({ id: uid(), date: lastDate, fert: Object.keys(FERTILIZERS)[0], targetN: 0, priceOverride: null });
+    state[scenario].push({ id: uid(), date: lastDate, fert: Object.keys(FERTILIZERS)[0], targetN: 0, priceOverride: null, nContentOverride: null });
     saveState();
     renderEvents(scenario);
     calculate();
@@ -477,7 +491,8 @@ function calculate() {
     if (c) {
       const info = FERTILIZERS[c.fert] || { n:0 };
       const lookup = c.priceOverride != null ? { price: c.priceOverride } : getInterpolatedPrice(c.fert, c.date);
-      const amount = info.n > 0 ? (c.targetN / info.n) * 100 : 0;
+      const nContent = c.nContentOverride != null ? c.nContentOverride : info.n;
+      const amount = nContent > 0 ? (c.targetN / nContent) * 100 : 0;
       convCost = (amount / 1000) * lookup.price;
       convTarget = c.targetN;
       convFertName = c.fert;
@@ -490,7 +505,8 @@ function calculate() {
     if (l) {
       const info = FERTILIZERS[l.fert] || { n:0 };
       const lookup = l.priceOverride != null ? { price: l.priceOverride } : getInterpolatedPrice(l.fert, l.date);
-      const amount = info.n > 0 ? (l.targetN / info.n) * 100 : 0;
+      const nContent = l.nContentOverride != null ? l.nContentOverride : info.n;
+      const amount = nContent > 0 ? (l.targetN / nContent) * 100 : 0;
       liveCost = (amount / 1000) * lookup.price;
       liveTarget = l.targetN;
       liveFertName = l.fert;
