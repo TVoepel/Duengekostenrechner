@@ -74,7 +74,7 @@
   <div class="card">
     <h2 style="margin-top:0">💶 Düngerpreise (eigene Einkaufspreise)</h2>
     <div class="price-info">
-      ℹ️ <strong>Wichtiger Hinweis zur Preisermittlung:</strong> Es gibt keine öffentliche, kostenfreie API mit tagesaktuellen Düngerpreisen, die verlässlich und lizenzrechtlich frei abrufbar ist. Frühere Versionen dieses Rechners haben deshalb <em>erfundene</em> Monatspreise als "echte Marktdaten" ausgegeben – das war irreführend. Dieser Rechner verwaltet stattdessen <strong>deine eigenen, belegbaren Einkaufspreise</strong> (Rechnungen/Lieferscheine) je Düngemittel und Datum. Zwischen zwei erfassten Preispunkten wird linear interpoliert; außerhalb des erfassten Zeitraums wird der jeweils nächstliegende bekannte Preis verwendet und deutlich als Schätzung markiert.
+      ℹ️ <strong>Wichtiger Hinweis zur Preisermittlung:</strong> Es gibt keine öffentliche API, die tagesaktuelle, rechtssichere Düngerpreise live an eine Webseite liefert. Frühere Versionen dieses Rechners haben deshalb <em>erfundene</em> Monatspreise als "echte Marktdaten" ausgegeben – das war irreführend. Dieser Rechner verwaltet stattdessen <strong>deine eigenen, belegbaren Einkaufspreise</strong> (Rechnungen/Lieferscheine) je Düngemittel und Datum – optional ergänzt um monatliche Richtwerte aus dem EU Agri-food Data Portal (siehe unten). Zwischen zwei erfassten Preispunkten wird linear interpoliert; außerhalb des erfassten Zeitraums wird der jeweils nächstliegende bekannte Preis verwendet und deutlich als Schätzung markiert.
     </div>
     <details open>
       <summary>Preispunkte verwalten</summary>
@@ -89,6 +89,28 @@
       <label style="margin-top:10px">JSON importieren</label>
       <input type="file" id="import-prices" accept="application/json">
     </details>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">🇪🇺 Monatliche EU-Düngemittelpreise (Deutschland)</h2>
+    <div class="price-info">
+      💡 Diese Webseite ruft die EU-Preise <strong>nicht live</strong> pro Seitenaufruf ab (Timeout-/Sperr-Risiko bei den EU-Servern). Stattdessen liest sie eine lokal zwischengespeicherte Datei
+      (<code>eu_fertilizer_prices.json</code>), die regelmäßig (z. B. täglich/wöchentlich per Cronjob) mit dem mitgelieferten Skript
+      <code>scripts/fetch_eu_fertilizer_prices.py</code> aus dem EU Agri-food Data Portal aktualisiert wird.
+    </div>
+    <button class="small-btn" id="load-eu-prices" style="background:#e7f5ff;color:#0d6efd;border:1.5px solid #0d6efd">🔄 Zwischengespeicherte EU-Preise laden</button>
+    <span id="eu-load-status" style="margin-left:10px;font-size:0.85rem;color:#6c757d"></span>
+    <div id="eu-price-preview"></div>
+
+    <div class="price-info" style="background:#f8d7da;border-left-color:#842029;margin-top:16px">
+      ⚖️ <strong>Rechtlicher Hinweis / Disclaimer:</strong> Die hier angezeigten EU-Preisdaten sind aggregierte, von den
+      Mitgliedstaaten an die Europäische Kommission gemeldete Marktmeldungen (Quelle:
+      <a href="https://agridata.ec.europa.eu/extensions/dataportal/agricultural_markets.html" target="_blank" rel="noopener">Europäische Kommission – Agri-Food Data Portal</a>).
+      Für die tagesaktuelle Richtigkeit dieser Daten sowie für hieraus resultierende Handelsentscheidungen oder
+      Handelsverluste wird <strong>keine Haftung übernommen</strong>. Die Europäische Kommission schließt ihrerseits
+      jegliche Haftung für die Verwendung ihrer API- bzw. Portaldaten aus. Diese Werte ersetzen keine eigene,
+      belegbare Preisrecherche und dienen nur als grobe Orientierung.
+    </div>
   </div>
 
   <div class="hint">
@@ -169,6 +191,16 @@
       <tbody id="detail-table"></tbody>
     </table>
   </div>
+
+  <footer style="font-size:0.78rem;color:#6c757d;padding:16px 4px;line-height:1.5">
+    Enthält ggf. Marktdaten der Quelle: Europäische Kommission – Agri-Food Data Portal
+    (<a href="https://agridata.ec.europa.eu/extensions/dataportal/agricultural_markets.html" target="_blank" rel="noopener">agridata.ec.europa.eu</a>).
+    Es handelt sich um aggregierte, von den Mitgliedstaaten gemeldete EU-Marktdaten. Für die tagesaktuelle
+    Richtigkeit dieser Daten oder daraus resultierende Handelsentscheidungen/-verluste wird keine Haftung
+    übernommen. Die Europäische Kommission schließt ihrerseits jegliche Haftung für die Nutzung ihrer
+    API- bzw. Portaldaten aus. Alle übrigen Preisangaben in diesem Rechner beruhen auf selbst erfassten,
+    eigenen Einkaufspreisen des Nutzers.
+  </footer>
 
 <script>
 /* ============================================================
@@ -289,6 +321,64 @@ document.getElementById('import-prices').addEventListener('change', (e) => {
     } catch(err) { alert('Ungültige JSON-Datei.'); }
   };
   reader.readAsText(file);
+});
+
+/* ============================================================
+   EU-Marktpreise: Import aus lokal zwischengespeicherter JSON-Datei
+   (erzeugt durch scripts/fetch_eu_fertilizer_prices.py). Es findet
+   KEIN Live-Abruf der EU-API aus dem Browser heraus statt.
+   ============================================================ */
+document.getElementById('load-eu-prices').addEventListener('click', async () => {
+  const statusEl = document.getElementById('eu-load-status');
+  const previewEl = document.getElementById('eu-price-preview');
+  statusEl.textContent = 'Lade eu_fertilizer_prices.json …';
+  previewEl.innerHTML = '';
+  try {
+    const res = await fetch('eu_fertilizer_prices.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Datei nicht gefunden (Status ' + res.status + ')');
+    const data = await res.json();
+    const points = Array.isArray(data.pricePoints) ? data.pricePoints : [];
+    if (points.length === 0) {
+      statusEl.textContent = 'Keine EU-Preispunkte in der Datei gefunden.';
+      return;
+    }
+    const fetchedAt = data.fetchedAt ? new Date(data.fetchedAt).toLocaleString('de-DE') : 'unbekannt';
+    statusEl.textContent = `${points.length} EU-Preispunkte gefunden (Stand Abruf: ${fetchedAt}).`;
+
+    previewEl.innerHTML = `
+      <table class="price-source-table" style="margin-top:10px">
+        <thead><tr><th></th><th>Dünger</th><th>Datum</th><th>Preis (€/t)</th><th>Notiz</th></tr></thead>
+        <tbody>
+          ${points.map((p, i) => `
+            <tr>
+              <td><input type="checkbox" class="eu-point-check" data-idx="${i}" checked></td>
+              <td>${p.fert}</td>
+              <td>${p.date}</td>
+              <td>${fmt(p.price)}</td>
+              <td>${p.note || ''}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      <button class="small-btn" id="apply-eu-prices" style="background:#d1f2eb;color:#0f5132;border:1.5px solid #0f5132;margin-top:10px">✅ Ausgewählte Preispunkte übernehmen</button>
+      <p style="font-size:0.8rem;color:#6c757d;margin-top:8px">Quelle: ${data.source || 'Europäische Kommission – Agri-Food Data Portal'}. ${data.disclaimer || ''}</p>
+    `;
+
+    document.getElementById('apply-eu-prices').addEventListener('click', () => {
+      const checked = Array.from(document.querySelectorAll('.eu-point-check:checked')).map(c => parseInt(c.dataset.idx, 10));
+      checked.forEach(idx => {
+        const p = points[idx];
+        if (!FERTILIZERS[p.fert]) return;
+        pricePoints.push({ id: uid(), fert: p.fert, date: p.date, price: p.price, note: p.note || 'EU Agri-food Data Portal' });
+      });
+      savePricePoints();
+      renderPricePoints();
+      refreshAllPriceLookups();
+      statusEl.textContent = `${checked.length} EU-Preispunkte übernommen.`;
+      previewEl.innerHTML = '';
+    });
+  } catch (err) {
+    statusEl.textContent = 'Keine zwischengespeicherten EU-Preise verfügbar. Führe zuerst scripts/fetch_eu_fertilizer_prices.py aus.';
+  }
 });
 
 /**
