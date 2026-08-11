@@ -58,7 +58,7 @@ PRODUCT_NAME_MAP = {
     "urea ammonium nitrate": "AHL 28% N",
     "dap": "DAP 18% N + 46% P2O5",
     "diammonium phosphate": "DAP 18% N + 46% P2O5",
-    "npk": "NPK 15-15-15",
+    "npk": "NPK 15-15-15 (15% N + 15% P2O5 + 15% K2O)",
 }
 
 OUTPUT_JSON = "eu_fertilizer_prices.json"
