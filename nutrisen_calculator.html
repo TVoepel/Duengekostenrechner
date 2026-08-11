@@ -446,6 +446,25 @@ function fertOptionsHtml(selected){
   return Object.keys(FERTILIZERS).map(f => `<option value="${f}" ${f===selected?'selected':''}>${f}</option>`).join('');
 }
 
+/**
+ * Aktualisiert Menge/Kosten/N-Gehalt-Anzeige eines bereits gerenderten
+ * Gabe-Blocks in-place, ohne den DOM neu aufzubauen. So behalten
+ * Eingabefelder (z. B. bei der manuellen N-Gehalt-Eingabe) während des
+ * Tippens den Fokus; ein voller renderEvents() erfolgt erst bei "blur"
+ * (u. a. um die geschätzt/ermittelt- und angepasst-Badges zu erneuern).
+ */
+function updateEventDisplay(section, scenario, ev){
+  const info = FERTILIZERS[ev.fert] || { n:0,s:0,p2o5:0,k2o:0,mgo:0 };
+  const lookup = ev.priceOverride != null ? { price: ev.priceOverride } : getInterpolatedPrice(ev.fert, ev.date);
+  const nContent = ev.nContentOverride != null ? ev.nContentOverride : info.n;
+  const amount = nContent > 0 ? (ev.targetN / nContent) * 100 : 0;
+  const cost = (amount / 1000) * lookup.price;
+
+  section.querySelector('.ev-ncontent').value = nContent;
+  section.querySelector('.ev-amount').textContent = fmtInt(amount);
+  section.querySelector('.ev-cost').textContent = fmt(cost);
+}
+
 function renderEvents(scenario){
   const container = document.getElementById(scenario === 'conv' ? 'events-conv' : 'events-nutrisen');
   container.innerHTML = '';
@@ -505,13 +524,15 @@ function renderEvents(scenario){
 
     section.querySelector('.ev-date').addEventListener('change', e => { ev.date = e.target.value; ev.priceOverride = null; saveState(); renderEvents(scenario); calculate(); });
     section.querySelector('.ev-fert').addEventListener('change', e => { ev.fert = e.target.value; ev.priceOverride = null; ev.nContentOverride = null; saveState(); renderEvents(scenario); calculate(); });
-    section.querySelector('.ev-price').addEventListener('input', e => { ev.priceOverride = parseFloat(e.target.value || 0); saveState(); renderEvents(scenario); calculate(); });
-    section.querySelector('.ev-target').addEventListener('input', e => { ev.targetN = parseFloat(e.target.value || 0); saveState(); calculate(); });
+    section.querySelector('.ev-price').addEventListener('input', e => { ev.priceOverride = parseFloat(e.target.value || 0); saveState(); updateEventDisplay(section, scenario, ev); calculate(); });
+    section.querySelector('.ev-price').addEventListener('blur', () => renderEvents(scenario));
+    section.querySelector('.ev-target').addEventListener('input', e => { ev.targetN = parseFloat(e.target.value || 0); saveState(); updateEventDisplay(section, scenario, ev); calculate(); });
     section.querySelector('.ev-ncontent-override').addEventListener('input', e => {
       const v = e.target.value;
       ev.nContentOverride = v === '' ? null : parseFloat(v);
-      saveState(); renderEvents(scenario); calculate();
+      saveState(); updateEventDisplay(section, scenario, ev); calculate();
     });
+    section.querySelector('.ev-ncontent-override').addEventListener('blur', () => renderEvents(scenario));
     const resetBtn = section.querySelector('.ev-ncontent-reset');
     if (resetBtn) resetBtn.addEventListener('click', () => { ev.nContentOverride = null; saveState(); renderEvents(scenario); calculate(); });
     const removeBtn = section.querySelector('.ev-remove');
