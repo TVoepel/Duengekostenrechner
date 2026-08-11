@@ -93,6 +93,11 @@
       <button class="small-btn" id="export-prices" style="background:#f1f3f5;color:#495057;border:1.5px solid #ced4da;margin-top:10px">⬇️ Als JSON exportieren</button>
       <label style="margin-top:10px">JSON importieren</label>
       <input type="file" id="import-prices" accept="application/json">
+      <div id="export-fallback" style="display:none;margin-top:12px">
+        <label>Download hat nicht automatisch gestartet? JSON hier kopieren:</label>
+        <textarea id="export-textarea" readonly style="width:100%;min-height:140px;font-family:monospace;font-size:0.8rem;padding:10px"></textarea>
+        <button class="small-btn" id="copy-export" style="background:#d1f2eb;color:#0f5132;border:1.5px solid #0f5132;margin-top:8px">📋 In Zwischenablage kopieren</button>
+      </div>
     </details>
   </div>
 
@@ -310,11 +315,46 @@ document.getElementById('add-price-point').addEventListener('click', () => {
 });
 
 document.getElementById('export-prices').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(pricePoints, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'nutrisen_preispunkte.json';
-  a.click();
+  const json = JSON.stringify(pricePoints, null, 2);
+
+  // Primärer Weg: Datei-Download über einen Blob-Link. Der Anchor muss
+  // im DOM hängen, damit click() in allen Browsern zuverlässig auslöst;
+  // anschließend wird er wieder entfernt und die Object-URL freigegeben.
+  let downloadTriggered = false;
+  try {
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'nutrisen_preispunkte.json';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadTriggered = true;
+  } catch (err) {
+    downloadTriggered = false;
+  }
+
+  // Fallback: In eingeschränkten Umgebungen (z. B. Vorschau-iFrames ohne
+  // Download-Erlaubnis) wird zusätzlich immer ein Textfeld zum manuellen
+  // Kopieren/Speichern angezeigt.
+  const fallback = document.getElementById('export-fallback');
+  const textarea = document.getElementById('export-textarea');
+  textarea.value = json;
+  fallback.style.display = 'block';
+  if (!downloadTriggered) textarea.select();
+});
+
+document.getElementById('copy-export').addEventListener('click', async () => {
+  const textarea = document.getElementById('export-textarea');
+  try {
+    await navigator.clipboard.writeText(textarea.value);
+  } catch (err) {
+    textarea.select();
+    document.execCommand('copy');
+  }
 });
 
 document.getElementById('import-prices').addEventListener('change', (e) => {
