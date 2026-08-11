@@ -315,7 +315,8 @@ document.getElementById('add-price-point').addEventListener('click', () => {
 });
 
 document.getElementById('export-prices').addEventListener('click', () => {
-  const json = JSON.stringify(pricePoints, null, 2);
+  const exportable = pricePoints.map(({ fert, date, price, note }) => ({ fert, date, price, note }));
+  const json = JSON.stringify(exportable, null, 2);
 
   // Primärer Weg: Datei-Download über einen Blob-Link. Der Anchor muss
   // im DOM hängen, damit click() in allen Browsern zuverlässig auslöst;
